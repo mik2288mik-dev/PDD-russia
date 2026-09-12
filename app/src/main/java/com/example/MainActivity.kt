@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        PddDataProvider.init(applicationContext)
         val database = PddDatabase.getDatabase(applicationContext)
         lifecycleScope.launch(Dispatchers.IO) {
             PddDataProvider.populateDatabaseFromJson(applicationContext, database)

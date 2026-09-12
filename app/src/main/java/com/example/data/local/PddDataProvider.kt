@@ -13,6 +13,36 @@ object PddDataProvider {
     @Volatile
     private var cachedQuestions: MutableMap<String, List<PddQuestion>> = mutableMapOf()
 
+    @Synchronized
+    fun init(context: Context) {
+        if (cachedQuestions.isEmpty()) {
+            val questionsFromAssets = loadQuestionsFromAssets(context.applicationContext)
+            if (questionsFromAssets.isNotEmpty()) {
+                val assetAbm = questionsFromAssets.filter { it.category == "ABM" }
+                val assetCd = questionsFromAssets.filter { it.category == "CD" }
+
+                val fullAbm = if (assetAbm.size < 800) {
+                    val defaults = generateDefaultQuestions("ABM")
+                    val assetTicketKeys = assetAbm.map { "${it.ticketNumber}_${it.questionNumber}" }.toSet()
+                    assetAbm + defaults.filter { "${it.ticketNumber}_${it.questionNumber}" !in assetTicketKeys }
+                } else {
+                    assetAbm
+                }
+
+                val fullCd = if (assetCd.size < 800) {
+                    val defaults = generateDefaultQuestions("CD")
+                    val assetTicketKeys = assetCd.map { "${it.ticketNumber}_${it.questionNumber}" }.toSet()
+                    assetCd + defaults.filter { "${it.ticketNumber}_${it.questionNumber}" !in assetTicketKeys }
+                } else {
+                    assetCd
+                }
+
+                cachedQuestions["ABM"] = fullAbm
+                cachedQuestions["CD"] = fullCd
+            }
+        }
+    }
+
     fun getQuestions(category: String): List<PddQuestion> {
         val cached = cachedQuestions[category]
         if (!cached.isNullOrEmpty()) {
@@ -24,44 +54,15 @@ object PddDataProvider {
     }
 
     suspend fun populateDatabaseFromJson(context: Context, database: PddDatabase) {
+        init(context)
         val dao = database.pddDao()
         val existingCount = dao.getQuestionsCount()
 
-        // Read questions from assets/pdd_data.json
-        val questionsFromAssets = loadQuestionsFromAssets(context)
+        val fullAbm = getQuestions("ABM")
+        val fullCd = getQuestions("CD")
+        val questionsToInsert = fullAbm + fullCd
 
-        val questionsToInsert = if (questionsFromAssets.isNotEmpty()) {
-            val assetAbm = questionsFromAssets.filter { it.category == "ABM" }
-            val assetCd = questionsFromAssets.filter { it.category == "CD" }
-
-            val fullAbm = if (assetAbm.size < 800) {
-                val defaults = generateDefaultQuestions("ABM")
-                val assetTicketKeys = assetAbm.map { "${it.ticketNumber}_${it.questionNumber}" }.toSet()
-                assetAbm + defaults.filter { "${it.ticketNumber}_${it.questionNumber}" !in assetTicketKeys }
-            } else {
-                assetAbm
-            }
-
-            val fullCd = if (assetCd.size < 800) {
-                val defaults = generateDefaultQuestions("CD")
-                val assetTicketKeys = assetCd.map { "${it.ticketNumber}_${it.questionNumber}" }.toSet()
-                assetCd + defaults.filter { "${it.ticketNumber}_${it.questionNumber}" !in assetTicketKeys }
-            } else {
-                assetCd
-            }
-
-            cachedQuestions["ABM"] = fullAbm
-            cachedQuestions["CD"] = fullCd
-            fullAbm + fullCd
-        } else {
-            val abm = generateDefaultQuestions("ABM")
-            val cd = generateDefaultQuestions("CD")
-            cachedQuestions["ABM"] = abm
-            cachedQuestions["CD"] = cd
-            abm + cd
-        }
-
-        if (existingCount == 0) {
+        if (existingCount < questionsToInsert.size) {
             dao.insertQuestions(questionsToInsert.map { it.toEntity() })
         }
 
@@ -97,33 +98,37 @@ object PddDataProvider {
                 }
             }
 
-            var fallbackId = 1000
             for (i in 0 until jsonArray.length()) {
                 val item = jsonArray.getJSONObject(i)
 
-                val ticketNum = when {
-                    item.has("ticket_number") -> item.optInt("ticket_number", 1)
-                    item.has("ticketNumber") -> item.optInt("ticketNumber", 1)
-                    item.has("ticket") -> item.optInt("ticket", 1)
-                    else -> 1
+                // Extract ticket number (handles "Билет 1", 1, "1", etc.)
+                val ticketStr = when {
+                    item.has("ticket_number") -> item.optString("ticket_number")
+                    item.has("ticketNumber") -> item.optString("ticketNumber")
+                    item.has("ticket") -> item.optString("ticket")
+                    else -> ""
                 }
+                val ticketNum = ticketStr.filter { it.isDigit() }.toIntOrNull()
+                    ?: item.optInt("ticket_number", 1)
 
-                val questionNum = when {
-                    item.has("question_number") -> item.optInt("question_number", (i % 20) + 1)
-                    item.has("questionNumber") -> item.optInt("questionNumber", (i % 20) + 1)
-                    else -> (i % 20) + 1
+                // Extract question number (handles "Вопрос 1", 1, "1", or sequential position)
+                val qStr = when {
+                    item.has("question_number") -> item.optString("question_number")
+                    item.has("questionNumber") -> item.optString("questionNumber")
+                    item.has("title") -> item.optString("title")
+                    else -> ""
                 }
+                val questionNum = qStr.filter { it.isDigit() }.toIntOrNull() ?: ((i % 20) + 1)
 
-                val category = when {
-                    item.has("ticket_category") -> {
-                        val cat = item.optString("ticket_category", "ABM")
-                        if (cat.contains("CD", ignoreCase = true)) "CD" else "ABM"
-                    }
-                    item.has("category") -> {
-                        val cat = item.optString("category", "ABM")
-                        if (cat.contains("CD", ignoreCase = true)) "CD" else "ABM"
-                    }
+                val rawCategory = when {
+                    item.has("ticket_category") -> item.optString("ticket_category", "ABM")
+                    item.has("category") -> item.optString("category", "ABM")
                     else -> "ABM"
+                }
+                val category = if (rawCategory.contains("CD", ignoreCase = true) || rawCategory.contains("C,D", ignoreCase = true)) {
+                    "CD"
+                } else {
+                    "ABM"
                 }
 
                 val questionText = when {
@@ -173,17 +178,11 @@ object PddDataProvider {
                     }
                 }
 
-                // Check correct answer override if specified
-                if (item.has("correct_answer")) {
-                    val ca = item.opt("correct_answer")
-                    if (ca is Int) {
-                        correctIdx = if (ca > 0 && ca <= options.size) ca - 1 else ca
-                    } else if (ca is String) {
-                        val parsed = ca.toIntOrNull()
-                        if (parsed != null && parsed > 0 && parsed <= options.size) {
-                            correctIdx = parsed - 1
-                        }
-                    }
+                // Check correct answer override if specified ("Правильный ответ: 2" or int)
+                val caStr = item.optString("correct_answer")
+                val parsedCa = caStr.filter { it.isDigit() }.toIntOrNull()
+                if (parsedCa != null && parsedCa in 1..options.size) {
+                    correctIdx = parsedCa - 1
                 } else if (item.has("correctAnswerIndex")) {
                     correctIdx = item.optInt("correctAnswerIndex", correctIdx)
                 }
@@ -195,19 +194,22 @@ object PddDataProvider {
                     else -> ""
                 }
 
-                val imageUrl = when {
-                    item.has("image") && !item.isNull("image") -> {
-                        val img = item.optString("image")
-                        if (img.isNotBlank() && img != "null") img else null
-                    }
-                    item.has("imageUrl") && !item.isNull("imageUrl") -> {
-                        val img = item.optString("imageUrl")
-                        if (img.isNotBlank() && img != "null") img else null
-                    }
+                // Image handling: resolve relative paths to GitHub raw repository
+                val rawImage = when {
+                    item.has("image") && !item.isNull("image") -> item.optString("image")
+                    item.has("imageUrl") && !item.isNull("imageUrl") -> item.optString("imageUrl")
                     else -> null
                 }
+                val imageUrl = when {
+                    rawImage == null || rawImage.isBlank() || rawImage == "null" || rawImage.contains("no_image", ignoreCase = true) -> null
+                    rawImage.startsWith("http://") || rawImage.startsWith("https://") -> rawImage
+                    rawImage.startsWith("./images/") -> "https://raw.githubusercontent.com/etspring/pdd_russia/master/" + rawImage.removePrefix("./")
+                    rawImage.startsWith("images/") -> "https://raw.githubusercontent.com/etspring/pdd_russia/master/" + rawImage
+                    else -> "https://raw.githubusercontent.com/etspring/pdd_russia/master/images/A_B/" + rawImage.removePrefix("./")
+                }
 
-                val id = if (item.has("id")) item.optInt("id", fallbackId++) else fallbackId++
+                // Deterministic integer ID for Room entity
+                val id = (ticketNum * 100) + questionNum + (if (category == "CD") 5000 else 0)
 
                 result.add(
                     PddQuestion(
