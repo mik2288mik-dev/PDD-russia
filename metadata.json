@@ -1,5 +1,5 @@
 {
-  "name": "ПДД 2026 Билеты и Экзамен",
+  "name": "ПДД 2026-2027",
   "description": "Билеты ПДД РФ 2026-2027 с комментариями экспертов, экзаменом ГИБДД, правилами, знаками и работой над ошибками.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

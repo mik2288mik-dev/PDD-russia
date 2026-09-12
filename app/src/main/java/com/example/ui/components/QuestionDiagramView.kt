@@ -29,13 +29,14 @@ import androidx.compose.ui.unit.sp
 fun QuestionDiagramView(diagramType: String?, modifier: Modifier = Modifier) {
     if (diagramType == null) return
 
-    Card(
+    androidx.compose.material3.ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
+        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFF1E293B)),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Box(
             modifier = Modifier
@@ -51,19 +52,18 @@ fun QuestionDiagramView(diagramType: String?, modifier: Modifier = Modifier) {
                 else -> {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.DirectionsCar,
                             contentDescription = "Ситуация на дороге",
                             tint = Color(0xFF60A5FA),
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(40.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Схема дорожной ситуации",
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
                         )
                     }
                 }

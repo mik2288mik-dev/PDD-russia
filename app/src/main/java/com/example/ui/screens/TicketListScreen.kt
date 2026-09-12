@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -17,7 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.entity.UserProgressEntity
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.PddViewModel
 
 @Composable
@@ -28,26 +28,28 @@ fun TicketListScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(VibrantBackground)
-            .padding(16.dp)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Билеты ПДД 2026-2027",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = VibrantOnBackground
-        )
-        Text(
-            text = "40 официальных билетов ГИБДД по 20 вопросов",
-            fontSize = 13.sp,
-            color = VibrantOnBackground.copy(alpha = 0.7f),
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "Билеты ПДД 2026-2027",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "40 официальных билетов ГИБДД по 20 вопросов",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             modifier = Modifier.fillMaxSize()
         ) {
             items((1..40).toList()) { ticketNum ->
@@ -59,63 +61,64 @@ fun TicketListScreen(
                 val isCompleted = solvedCount == 20
                 val isPassed = isCompleted && (correctCount >= 18)
 
-                Card(
+                val cardContainerColor = when {
+                    isPassed -> MaterialTheme.colorScheme.tertiaryContainer
+                    isCompleted -> MaterialTheme.colorScheme.errorContainer
+                    solvedCount > 0 -> MaterialTheme.colorScheme.primaryContainer
+                    else -> MaterialTheme.colorScheme.surface
+                }
+
+                val cardContentColor = when {
+                    isPassed -> MaterialTheme.colorScheme.onTertiaryContainer
+                    isCompleted -> MaterialTheme.colorScheme.onErrorContainer
+                    solvedCount > 0 -> MaterialTheme.colorScheme.onPrimaryContainer
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+
+                ElevatedCard(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .clickable { viewModel.startTicketQuiz(ticketNum) },
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = when {
-                            isPassed -> VibrantGreenContainer
-                            isCompleted -> VibrantPeachContainer
-                            solvedCount > 0 -> VibrantBlueContainer
-                            else -> Color.White
-                        }
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = cardContainerColor,
+                        contentColor = cardContentColor
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(8.dp),
+                            .padding(12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 text = "Билет",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = VibrantOnBackground.copy(alpha = 0.6f)
+                                style = MaterialTheme.typography.labelSmall,
+                                color = cardContentColor.copy(alpha = 0.7f)
                             )
                             Text(
                                 text = "$ticketNum",
-                                fontSize = 24.sp,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = VibrantOnBackground
+                                color = cardContentColor
                             )
 
                             if (solvedCount > 0) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            when {
-                                                isPassed -> VibrantOnGreenContainer
-                                                isCompleted -> VibrantOnPeachContainer
-                                                else -> VibrantOnBlueContainer
-                                            }
-                                        )
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                Surface(
+                                    shape = CircleShape,
+                                    color = cardContentColor.copy(alpha = 0.15f)
                                 ) {
                                     Text(
                                         text = "$correctCount/20",
-                                        color = Color.White,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
+                                        color = cardContentColor,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
                             }
@@ -126,4 +129,5 @@ fun TicketListScreen(
         }
     }
 }
+
 

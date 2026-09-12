@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.entity.UserProgressEntity
 import com.example.data.model.PddCategory
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.PddViewModel
 import com.example.ui.viewmodel.ScreenType
 
@@ -41,67 +40,67 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(VibrantBackground)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Hero Progress Banner - Vibrant Blue Container (#D3E3FD)
-        Card(
+        // Hero Progress Banner - M3 PrimaryContainer
+        ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = VibrantBlueContainer),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
-                        text = "Ваш прогресс",
-                        color = VibrantOnBlueContainer.copy(alpha = 0.7f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        text = "Готовность к экзамену",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
                     Text(
                         text = "$readinessPercent%",
-                        color = VibrantOnBlueContainer,
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Решено: $solvedCount из $totalQuestions ($category)",
-                        color = VibrantOnBlueContainer,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
                 }
 
                 // Circular Progress Indicator Badge
                 Box(
                     modifier = Modifier
-                        .size(68.dp)
+                        .size(64.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.6f)),
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        progress = readinessPercent / 100f,
+                        progress = { readinessPercent / 100f },
                         modifier = Modifier.fillMaxSize(),
-                        color = VibrantOnBlueContainer,
-                        trackColor = Color.White,
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
                         strokeWidth = 6.dp
                     )
                     Text(
                         text = category.code,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = VibrantOnBlueContainer
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -110,35 +109,34 @@ fun HomeScreen(
         // Section Title
         Text(
             text = "Режимы обучения",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = VibrantOnBackground,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
-        // Main Study Modes Grid - Vibrant Pastel Containers
+        // Main Study Modes Grid - M3 Cards with unified 12dp spacing
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                VibrantModeCard(
+                M3StudyModeCard(
                     title = "Билеты ПДД",
                     subtitle = "Все 40 билетов ГИБДД",
                     badge = "40",
                     icon = Icons.Default.School,
-                    containerColor = VibrantPurpleContainer,
-                    contentColor = VibrantOnPurpleContainer,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    iconTint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                     onClick = { viewModel.navigateTo(ScreenType.TICKET_LIST) }
                 )
-                VibrantModeCard(
+                M3StudyModeCard(
                     title = "Марафон 800",
-                    subtitle = "Без ошибок",
+                    subtitle = "Все вопросы подряд",
                     badge = "800",
                     icon = Icons.Default.HistoryEdu,
-                    containerColor = VibrantPeachContainer,
-                    contentColor = VibrantOnPeachContainer,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
                     onClick = { viewModel.startMarathonQuiz() }
                 )
@@ -148,23 +146,23 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                VibrantModeCard(
+                M3StudyModeCard(
                     title = "По темам",
                     subtitle = "20 разделов ПДД",
-                    badge = "20 тем",
+                    badge = "20",
                     icon = Icons.Default.Category,
-                    containerColor = VibrantGreenContainer,
-                    contentColor = VibrantOnGreenContainer,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    iconTint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.weight(1f),
                     onClick = { viewModel.navigateTo(ScreenType.TOPIC_LIST) }
                 )
-                VibrantModeCard(
+                M3StudyModeCard(
                     title = "Ошибки",
                     subtitle = if (mistakesCount > 0) "$mistakesCount на повторение" else "Нет ошибок",
                     badge = "$mistakesCount",
                     icon = Icons.Default.ErrorOutline,
-                    containerColor = if (mistakesCount > 0) Color(0xFFFEE2E2) else Color(0xFFF1F5F9),
-                    contentColor = if (mistakesCount > 0) Color(0xFF991B1B) else Color(0xFF475569),
+                    containerColor = if (mistakesCount > 0) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface,
+                    iconTint = if (mistakesCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                     onClick = { if (mistakesCount > 0) viewModel.startMistakesQuiz() }
                 )
@@ -174,23 +172,23 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                VibrantModeCard(
+                M3StudyModeCard(
                     title = "Избранное",
                     subtitle = "$bookmarksCount вопросов",
                     badge = "$bookmarksCount",
                     icon = Icons.Default.Star,
-                    containerColor = VibrantAmberContainer,
-                    contentColor = VibrantOnAmberContainer,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    iconTint = Color(0xFFF59E0B),
                     modifier = Modifier.weight(1f),
                     onClick = { if (bookmarksCount > 0) viewModel.startBookmarksQuiz() }
                 )
-                VibrantModeCard(
+                M3StudyModeCard(
                     title = "Справочник",
-                    subtitle = "Правила и Знаки 2026",
+                    subtitle = "Правила и знаки",
                     badge = "2026",
                     icon = Icons.Default.MenuBook,
-                    containerColor = VibrantBlueContainer,
-                    contentColor = VibrantOnBlueContainer,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    iconTint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                     onClick = { viewModel.navigateTo(ScreenType.HANDBOOK) }
                 )
@@ -198,13 +196,18 @@ fun HomeScreen(
         }
 
         // Expert Comments & AI Section
-        Card(
+        ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -212,73 +215,83 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = "Комментарии экспертов",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = VibrantOnBackground
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    TextButton(onClick = { viewModel.navigateTo(ScreenType.AI_CONSULTANT) }) {
-                        Text("Спросить AI", fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                    TextButton(
+                        onClick = { viewModel.navigateTo(ScreenType.AI_CONSULTANT) },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Спросить AI",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFF7F9FC))
+                        .clip(RoundedCornerShape(14.dp))
                         .clickable { viewModel.navigateTo(ScreenType.AI_CONSULTANT) }
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.RateReview,
-                            contentDescription = null,
-                            tint = Color(0xFF2563EB)
-                        )
-                    }
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RateReview,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Разбор спорных билетов ПДД",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = VibrantOnBackground
-                        )
-                        Text(
-                            text = "Получите подробные разъяснения от AI эксперта...",
-                            fontSize = 11.sp,
-                            color = Color.Gray,
-                            maxLines = 1
-                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Разбор спорных билетов ПДД",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Мгновенные разъяснения пунктов ПДД от нейросети",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Dark Primary Exam Button
+        // Primary Exam Button - M3 Pill Button with tonal elevation
         Button(
             onClick = { viewModel.startExamQuiz() },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp),
+                .padding(vertical = 4.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = VibrantDarkPrimary,
-                contentColor = VibrantOnDarkPrimary
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
-            shape = RoundedCornerShape(50),
-            contentPadding = PaddingValues(vertical = 18.dp),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+            shape = RoundedCornerShape(16.dp),
+            contentPadding = PaddingValues(vertical = 16.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
@@ -287,33 +300,31 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "ПРОДОЛЖИТЬ ТЕСТ (ЭКЗАМЕН)",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                letterSpacing = 0.5.sp
+                text = "СИМУЛЯЦИЯ ЭКЗАМЕНА ГИБДД",
+                style = MaterialTheme.typography.labelLarge
             )
         }
     }
 }
 
 @Composable
-fun VibrantModeCard(
+fun M3StudyModeCard(
     title: String,
     subtitle: String,
     badge: String,
     icon: ImageVector,
     containerColor: Color,
-    contentColor: Color,
+    iconTint: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Card(
+    ElevatedCard(
         modifier = modifier
-            .height(115.dp)
+            .height(112.dp)
             .clickable { onClick() },
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
@@ -324,45 +335,52 @@ fun VibrantModeCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(28.dp)
-                )
-
                 Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(contentColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(iconTint.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = iconTint.copy(alpha = 0.12f)
                 ) {
                     Text(
                         text = badge,
-                        color = contentColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        color = iconTint,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
 
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
-                    color = contentColor,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
-                    color = contentColor.copy(alpha = 0.75f),
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
             }
         }
     }
 }
+
 

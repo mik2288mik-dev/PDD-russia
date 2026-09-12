@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,14 +32,16 @@ fun PddTopBar(
 
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = com.example.ui.theme.VibrantBackground,
-            titleContentColor = com.example.ui.theme.VibrantOnBackground
+            containerColor = MaterialTheme.colorScheme.background,
+            scrolledContainerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+            actionIconContentColor = MaterialTheme.colorScheme.onBackground
         ),
         title = {
             Text(
                 text = title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 1
             )
         },
@@ -56,40 +58,50 @@ fun PddTopBar(
         actions = {
             // Category Toggle Pill (ABM / CD)
             Box {
-                Row(
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier
                         .padding(end = 12.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(com.example.ui.theme.VibrantBlueContainer)
+                        .clip(CircleShape)
                         .clickable { showCategoryMenu = true }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (currentCategory == PddCategory.ABM) Icons.Default.DirectionsCar else Icons.Default.LocalShipping,
-                        contentDescription = null,
-                        tint = com.example.ui.theme.VibrantOnBlueContainer,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = currentCategory.code,
-                        color = com.example.ui.theme.VibrantOnBlueContainer,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (currentCategory == PddCategory.ABM) Icons.Default.DirectionsCar else Icons.Default.LocalShipping,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = currentCategory.code,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
 
                 DropdownMenu(
                     expanded = showCategoryMenu,
-                    onDismissRequest = { showCategoryMenu = false }
+                    onDismissRequest = { showCategoryMenu = false },
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     PddCategory.entries.forEach { category ->
                         DropdownMenuItem(
                             text = {
-                                Column {
-                                    Text(text = category.title, fontWeight = FontWeight.Bold)
-                                    Text(text = category.description, fontSize = 12.sp, color = Color.Gray)
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = category.title,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                    Text(
+                                        text = category.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             },
                             onClick = {
@@ -99,9 +111,11 @@ fun PddTopBar(
                             leadingIcon = {
                                 Icon(
                                     imageVector = if (category == PddCategory.ABM) Icons.Default.DirectionsCar else Icons.Default.LocalShipping,
-                                    contentDescription = null
+                                    contentDescription = null,
+                                    tint = if (category == currentCategory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            }
+                            },
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
                 }
@@ -109,3 +123,4 @@ fun PddTopBar(
         }
     )
 }
+

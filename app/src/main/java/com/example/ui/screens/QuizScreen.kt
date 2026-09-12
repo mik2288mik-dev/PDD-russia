@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,8 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PddQuestion
 import com.example.ui.components.QuestionDiagramView
-import com.example.ui.theme.PddGreenCorrect
-import com.example.ui.theme.PddRedWrong
 import com.example.ui.viewmodel.QuizMode
 import com.example.ui.viewmodel.QuizState
 import com.example.ui.viewmodel.ScreenType
@@ -40,14 +40,26 @@ fun QuizScreen(
 ) {
     if (quizState.questions.isEmpty()) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Вопросы отсутствуют", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = { viewModel.navigateTo(ScreenType.HOME) }) {
-                    Text("На главную")
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = "Вопросы отсутствуют",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Button(
+                    onClick = { viewModel.navigateTo(ScreenType.HOME) },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("На главную", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -72,23 +84,27 @@ fun QuizScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = quizState.title,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1
                         )
                         Text(
                             text = "Вопрос ${quizState.currentIndex + 1} из ${quizState.questions.size}",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.navigateTo(ScreenType.HOME) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Закрыть")
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Закрыть",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 actions = {
@@ -97,27 +113,32 @@ fun QuizScreen(
                         val minutes = quizState.timeRemainingSeconds / 60
                         val seconds = quizState.timeRemainingSeconds % 60
                         val timeStr = String.format("%02d:%02d", minutes, seconds)
+                        val isUrgent = quizState.timeRemainingSeconds < 180
 
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (quizState.timeRemainingSeconds < 180) Color(0xFFFEE2E2) else MaterialTheme.colorScheme.primaryContainer)
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        val timerBg = if (isUrgent) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
+                        val timerContent = if (isUrgent) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+
+                        Surface(
+                            shape = CircleShape,
+                            color = timerBg,
+                            modifier = Modifier.padding(end = 8.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Timer,
                                     contentDescription = null,
-                                    tint = if (quizState.timeRemainingSeconds < 180) Color(0xFFDC2626) else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    tint = timerContent,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = timeStr,
+                                    style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (quizState.timeRemainingSeconds < 180) Color(0xFFDC2626) else MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = timerContent
                                 )
                             }
                         }
@@ -128,10 +149,14 @@ fun QuizScreen(
                         Icon(
                             imageVector = if (isBookmarked) Icons.Default.Star else Icons.Default.StarBorder,
                             contentDescription = "Избранное",
-                            tint = if (isBookmarked) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface
+                            tint = if (isBookmarked) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         }
     ) { innerPadding ->
@@ -146,6 +171,7 @@ fun QuizScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(innerPadding)
             ) {
                 // Question Pagination Strip
@@ -159,13 +185,15 @@ fun QuizScreen(
 
                         val bgColor = when {
                             isCurrent -> MaterialTheme.colorScheme.primary
-                            ans != null && ans == question.correctAnswerIndex -> Color(0xFF16A34A)
-                            ans != null -> Color(0xFFDC2626)
+                            ans != null && ans == question.correctAnswerIndex -> MaterialTheme.colorScheme.tertiary
+                            ans != null -> MaterialTheme.colorScheme.error
                             else -> MaterialTheme.colorScheme.surfaceVariant
                         }
 
                         val textColor = when {
-                            isCurrent || ans != null -> Color.White
+                            isCurrent -> MaterialTheme.colorScheme.onPrimary
+                            ans != null && ans == question.correctAnswerIndex -> MaterialTheme.colorScheme.onTertiary
+                            ans != null -> MaterialTheme.colorScheme.onError
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
 
@@ -179,7 +207,7 @@ fun QuizScreen(
                         ) {
                             Text(
                                 text = "${index + 1}",
-                                fontSize = 13.sp,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor
                             )
@@ -187,37 +215,33 @@ fun QuizScreen(
                     }
                 }
 
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 // Question Content Scrollable Area
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Topic Tag
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Text(
                             text = currentQuestion.topicTitle,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Question Text
                     Text(
                         text = currentQuestion.questionText,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         lineHeight = 24.sp
                     )
@@ -225,93 +249,112 @@ fun QuizScreen(
                     // Optional Traffic Diagram View
                     QuestionDiagramView(diagramType = currentQuestion.diagramType)
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    // Options List with 12dp spacing
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        currentQuestion.options.forEachIndexed { optIndex, optionText ->
+                            val isSelected = selectedOptionIndex == optIndex
+                            val isCorrectOption = optIndex == currentQuestion.correctAnswerIndex
 
-                    // Options List
-                    currentQuestion.options.forEachIndexed { optIndex, optionText ->
-                        val isSelected = selectedOptionIndex == optIndex
-                        val isCorrectOption = optIndex == currentQuestion.correctAnswerIndex
+                            val containerColor = when {
+                                isAnswered && isCorrectOption -> MaterialTheme.colorScheme.tertiaryContainer
+                                isAnswered && isSelected && !isCorrectOption -> MaterialTheme.colorScheme.errorContainer
+                                else -> MaterialTheme.colorScheme.surface
+                            }
 
-                        val containerColor = when {
-                            isAnswered && isSelected && isCorrectOption -> Color(0xFFDCFCE7)
-                            isAnswered && isSelected && !isCorrectOption -> Color(0xFFFEE2E2)
-                            isAnswered && isCorrectOption -> Color(0xFFDCFCE7)
-                            else -> MaterialTheme.colorScheme.surface
-                        }
+                            val borderColor = when {
+                                isAnswered && isCorrectOption -> MaterialTheme.colorScheme.tertiary
+                                isAnswered && isSelected && !isCorrectOption -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.outlineVariant
+                            }
 
-                        val borderColor = when {
-                            isAnswered && isCorrectOption -> Color(0xFF16A34A)
-                            isAnswered && isSelected && !isCorrectOption -> Color(0xFFDC2626)
-                            else -> MaterialTheme.colorScheme.outlineVariant
-                        }
+                            val badgeBg = when {
+                                isAnswered && isCorrectOption -> MaterialTheme.colorScheme.tertiary
+                                isAnswered && isSelected && !isCorrectOption -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
 
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp)
-                                .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
-                                .clickable(enabled = !isAnswered) {
-                                    viewModel.answerQuestion(currentQuestion.id, optIndex)
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = containerColor),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Row(
+                            val badgeTextColor = when {
+                                isAnswered && isCorrectOption -> MaterialTheme.colorScheme.onTertiary
+                                isAnswered && isSelected && !isCorrectOption -> MaterialTheme.colorScheme.onError
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+
+                            OutlinedCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .clickable(enabled = !isAnswered) {
+                                        viewModel.answerQuestion(currentQuestion.id, optIndex)
+                                    },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.outlinedCardColors(containerColor = containerColor),
+                                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(borderColor))
                             ) {
-                                Box(
+                                Row(
                                     modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isAnswered && isCorrectOption) Color(0xFF16A34A)
-                                            else if (isAnswered && isSelected) Color(0xFFDC2626)
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
-                                    if (isAnswered && isCorrectOption) {
-                                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    } else if (isAnswered && isSelected) {
-                                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    } else {
-                                        Text(
-                                            text = "${optIndex + 1}",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(badgeBg),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isAnswered && isCorrectOption) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = badgeTextColor,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        } else if (isAnswered && isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = null,
+                                                tint = badgeTextColor,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        } else {
+                                            Text(
+                                                text = "${optIndex + 1}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = badgeTextColor
+                                            )
+                                        }
                                     }
+
+                                    Text(
+                                        text = optionText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f),
+                                        lineHeight = 20.sp
+                                    )
                                 }
-
-                                Spacer(modifier = Modifier.width(14.dp))
-
-                                Text(
-                                    text = optionText,
-                                    fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
                             }
                         }
                     }
 
                     // Expert Comment Section
                     if (isAnswered) {
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Card(
+                        ElevatedCard(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                            )
+                            colors = CardDefaults.elevatedCardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            ),
+                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -319,36 +362,46 @@ fun QuizScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
                                         Icon(
                                             imageVector = Icons.Default.Info,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = "Комментарий эксперта ПДД",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp,
+                                            style = MaterialTheme.typography.titleSmall,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                     }
 
-                                    Icon(
-                                        imageVector = if (showExpertComment) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
+                                    IconButton(
+                                        onClick = { showExpertComment = !showExpertComment },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (showExpertComment) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
                                 }
 
                                 AnimatedVisibility(visible = showExpertComment) {
-                                    Column {
-                                        Spacer(modifier = Modifier.height(10.dp))
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        HorizontalDivider(
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f),
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
                                         Text(
                                             text = currentQuestion.expertComment,
-                                            fontSize = 14.sp,
+                                            style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            lineHeight = 20.sp
+                                            lineHeight = 22.sp
                                         )
                                     }
                                 }
@@ -359,8 +412,9 @@ fun QuizScreen(
 
                 // Bottom Pagination Navigation Bar
                 Surface(
-                    tonalElevation = 8.dp,
-                    shadowElevation = 8.dp
+                    tonalElevation = 3.dp,
+                    shadowElevation = 4.dp,
+                    color = MaterialTheme.colorScheme.surface
                 ) {
                     Row(
                         modifier = Modifier
@@ -374,8 +428,13 @@ fun QuizScreen(
                             enabled = quizState.currentIndex > 0,
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.ChevronLeft, contentDescription = null)
-                            Text("Назад")
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Назад", style = MaterialTheme.typography.labelLarge)
                         }
 
                         Button(
@@ -383,8 +442,13 @@ fun QuizScreen(
                             enabled = quizState.currentIndex < quizState.questions.size - 1,
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Далее")
-                            Icon(Icons.Default.ChevronRight, contentDescription = null)
+                            Text("Далее", style = MaterialTheme.typography.labelLarge)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
@@ -405,6 +469,9 @@ fun QuizResultView(
     val correct = total - errors
     val passed = quizState.isPassed
 
+    val resultColor = if (passed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+    val resultBg = if (passed) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -415,16 +482,16 @@ fun QuizResultView(
     ) {
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(96.dp)
                 .clip(CircleShape)
-                .background(if (passed) Color(0xFFDCFCE7) else Color(0xFFFEE2E2)),
+                .background(resultBg),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = if (passed) Icons.Default.CheckCircle else Icons.Default.Cancel,
                 contentDescription = null,
-                tint = if (passed) Color(0xFF16A34A) else Color(0xFFDC2626),
-                modifier = Modifier.size(64.dp)
+                tint = resultColor,
+                modifier = Modifier.size(56.dp)
             )
         }
 
@@ -432,26 +499,28 @@ fun QuizResultView(
 
         Text(
             text = if (passed) "ЭКЗАМЕН СДАН!" else "ЭКЗАМЕН НЕ СДАН",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = if (passed) Color(0xFF16A34A) else Color(0xFFDC2626)
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = resultColor
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = if (passed) "Поздравляем! Вы отлично знаете правила ПДД!" else "Допущено ошибок: $errors. Не расстраивайтесь, повторите материал!",
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-            modifier = Modifier.padding(horizontal = 16.dp)
+            text = if (passed) "Поздравляем! Вы отлично знаете правила ПДД!" else "Допущено ошибок: $errors. Не расстраивайтесь, повторите ошибки и попробуйте снова!",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp),
+            lineHeight = 20.sp
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
+        ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -459,17 +528,26 @@ fun QuizResultView(
                     .padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Правильно", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$correct", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("Верно", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$correct", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Ошибок", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$errors", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("Ошибок", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$errors", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Всего", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$total", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("Всего", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$total", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -482,9 +560,9 @@ fun QuizResultView(
             shape = RoundedCornerShape(14.dp),
             contentPadding = PaddingValues(vertical = 14.dp)
         ) {
-            Icon(Icons.Default.Refresh, contentDescription = null)
+            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Пройти еще раз", fontWeight = FontWeight.Bold)
+            Text("Пройти еще раз", style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -495,7 +573,8 @@ fun QuizResultView(
             shape = RoundedCornerShape(14.dp),
             contentPadding = PaddingValues(vertical = 14.dp)
         ) {
-            Text("Вернуться на главную")
+            Text("Вернуться на главную", style = MaterialTheme.typography.labelLarge)
         }
     }
 }
+
