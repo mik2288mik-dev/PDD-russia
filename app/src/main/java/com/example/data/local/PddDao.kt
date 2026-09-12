@@ -5,11 +5,34 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.data.entity.ExamHistoryEntity
+import com.example.data.entity.QuestionEntity
+import com.example.data.entity.TrafficSignEntity
 import com.example.data.entity.UserProgressEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PddDao {
+
+    @Query("SELECT * FROM questions WHERE category = :category")
+    fun getQuestions(category: String): Flow<List<QuestionEntity>>
+
+    @Query("SELECT * FROM questions WHERE category = :category")
+    suspend fun getQuestionsList(category: String): List<QuestionEntity>
+
+    @Query("SELECT COUNT(*) FROM questions")
+    suspend fun getQuestionsCount(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertQuestions(questions: List<QuestionEntity>)
+
+    @Query("SELECT * FROM traffic_signs")
+    fun getTrafficSigns(): Flow<List<TrafficSignEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrafficSigns(signs: List<TrafficSignEntity>)
+
+    @Query("SELECT COUNT(*) FROM traffic_signs")
+    suspend fun getTrafficSignsCount(): Int
 
     @Query("SELECT * FROM user_progress WHERE category = :category")
     fun getUserProgressList(category: String): Flow<List<UserProgressEntity>>

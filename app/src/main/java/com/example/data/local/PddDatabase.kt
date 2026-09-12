@@ -5,11 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.data.entity.ExamHistoryEntity
+import com.example.data.entity.QuestionEntity
+import com.example.data.entity.TrafficSignEntity
 import com.example.data.entity.UserProgressEntity
 
 @Database(
-    entities = [UserProgressEntity::class, ExamHistoryEntity::class],
-    version = 1,
+    entities = [
+        UserProgressEntity::class,
+        ExamHistoryEntity::class,
+        QuestionEntity::class,
+        TrafficSignEntity::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class PddDatabase : RoomDatabase() {
@@ -25,7 +32,9 @@ abstract class PddDatabase : RoomDatabase() {
                     context.applicationContext,
                     PddDatabase::class.java,
                     "pdd_database_2026.db"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

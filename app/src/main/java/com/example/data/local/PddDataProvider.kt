@@ -1,12 +1,237 @@
 package com.example.data.local
 
+import android.content.Context
+import com.example.data.entity.toEntity
 import com.example.data.model.PddQuestion
 import com.example.data.model.PddRuleSection
 import com.example.data.model.TrafficSign
+import org.json.JSONArray
+import org.json.JSONObject
 
 object PddDataProvider {
 
+    @Volatile
+    private var cachedQuestions: MutableMap<String, List<PddQuestion>> = mutableMapOf()
+
     fun getQuestions(category: String): List<PddQuestion> {
+        val cached = cachedQuestions[category]
+        if (!cached.isNullOrEmpty()) {
+            return cached
+        }
+        val generated = generateDefaultQuestions(category)
+        cachedQuestions[category] = generated
+        return generated
+    }
+
+    suspend fun populateDatabaseFromJson(context: Context, database: PddDatabase) {
+        val dao = database.pddDao()
+        val existingCount = dao.getQuestionsCount()
+
+        // Read questions from assets/pdd_data.json
+        val questionsFromAssets = loadQuestionsFromAssets(context)
+
+        val questionsToInsert = if (questionsFromAssets.isNotEmpty()) {
+            val assetAbm = questionsFromAssets.filter { it.category == "ABM" }
+            val assetCd = questionsFromAssets.filter { it.category == "CD" }
+
+            val fullAbm = if (assetAbm.size < 800) {
+                val defaults = generateDefaultQuestions("ABM")
+                val assetTicketKeys = assetAbm.map { "${it.ticketNumber}_${it.questionNumber}" }.toSet()
+                assetAbm + defaults.filter { "${it.ticketNumber}_${it.questionNumber}" !in assetTicketKeys }
+            } else {
+                assetAbm
+            }
+
+            val fullCd = if (assetCd.size < 800) {
+                val defaults = generateDefaultQuestions("CD")
+                val assetTicketKeys = assetCd.map { "${it.ticketNumber}_${it.questionNumber}" }.toSet()
+                assetCd + defaults.filter { "${it.ticketNumber}_${it.questionNumber}" !in assetTicketKeys }
+            } else {
+                assetCd
+            }
+
+            cachedQuestions["ABM"] = fullAbm
+            cachedQuestions["CD"] = fullCd
+            fullAbm + fullCd
+        } else {
+            val abm = generateDefaultQuestions("ABM")
+            val cd = generateDefaultQuestions("CD")
+            cachedQuestions["ABM"] = abm
+            cachedQuestions["CD"] = cd
+            abm + cd
+        }
+
+        if (existingCount == 0) {
+            dao.insertQuestions(questionsToInsert.map { it.toEntity() })
+        }
+
+        // Populate traffic signs if empty
+        if (dao.getTrafficSignsCount() == 0) {
+            dao.insertTrafficSigns(getTrafficSigns().map { it.toEntity() })
+        }
+    }
+
+    fun loadQuestionsFromAssets(context: Context): List<PddQuestion> {
+        return try {
+            val inputStream = context.assets.open("pdd_data.json")
+            val jsonString = inputStream.bufferedReader().use { it.readText() }
+            parseQuestionsJson(jsonString)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun parseQuestionsJson(jsonString: String): List<PddQuestion> {
+        val result = mutableListOf<PddQuestion>()
+        try {
+            val trimmed = jsonString.trim()
+            val jsonArray = if (trimmed.startsWith("[")) {
+                JSONArray(trimmed)
+            } else {
+                val rootObj = JSONObject(trimmed)
+                when {
+                    rootObj.has("questions") -> rootObj.getJSONArray("questions")
+                    rootObj.has("tickets") -> rootObj.getJSONArray("tickets")
+                    rootObj.has("data") -> rootObj.getJSONArray("data")
+                    else -> JSONArray()
+                }
+            }
+
+            var fallbackId = 1000
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+
+                val ticketNum = when {
+                    item.has("ticket_number") -> item.optInt("ticket_number", 1)
+                    item.has("ticketNumber") -> item.optInt("ticketNumber", 1)
+                    item.has("ticket") -> item.optInt("ticket", 1)
+                    else -> 1
+                }
+
+                val questionNum = when {
+                    item.has("question_number") -> item.optInt("question_number", (i % 20) + 1)
+                    item.has("questionNumber") -> item.optInt("questionNumber", (i % 20) + 1)
+                    else -> (i % 20) + 1
+                }
+
+                val category = when {
+                    item.has("ticket_category") -> {
+                        val cat = item.optString("ticket_category", "ABM")
+                        if (cat.contains("CD", ignoreCase = true)) "CD" else "ABM"
+                    }
+                    item.has("category") -> {
+                        val cat = item.optString("category", "ABM")
+                        if (cat.contains("CD", ignoreCase = true)) "CD" else "ABM"
+                    }
+                    else -> "ABM"
+                }
+
+                val questionText = when {
+                    item.has("question") -> item.optString("question")
+                    item.has("question_text") -> item.optString("question_text")
+                    item.has("title") -> item.optString("title")
+                    else -> ""
+                }
+                if (questionText.isBlank()) continue
+
+                // Parse topic
+                val topicTitle = when {
+                    item.has("topic") -> {
+                        val opt = item.opt("topic")
+                        if (opt is JSONArray && opt.length() > 0) {
+                            opt.getString(0)
+                        } else {
+                            opt?.toString() ?: "Общие положения"
+                        }
+                    }
+                    item.has("topicTitle") -> item.optString("topicTitle", "Общие положения")
+                    else -> "Общие положения"
+                }
+
+                // Parse answers/options
+                val options = mutableListOf<String>()
+                var correctIdx = 0
+
+                if (item.has("answers")) {
+                    val answersArr = item.getJSONArray("answers")
+                    for (a in 0 until answersArr.length()) {
+                        val aObj = answersArr.optJSONObject(a)
+                        if (aObj != null) {
+                            val text = aObj.optString("answer_text", aObj.optString("text", ""))
+                            options.add(text)
+                            if (aObj.optBoolean("is_correct", false)) {
+                                correctIdx = a
+                            }
+                        } else {
+                            options.add(answersArr.getString(a))
+                        }
+                    }
+                } else if (item.has("options")) {
+                    val optArr = item.getJSONArray("options")
+                    for (o in 0 until optArr.length()) {
+                        options.add(optArr.getString(o))
+                    }
+                }
+
+                // Check correct answer override if specified
+                if (item.has("correct_answer")) {
+                    val ca = item.opt("correct_answer")
+                    if (ca is Int) {
+                        correctIdx = if (ca > 0 && ca <= options.size) ca - 1 else ca
+                    } else if (ca is String) {
+                        val parsed = ca.toIntOrNull()
+                        if (parsed != null && parsed > 0 && parsed <= options.size) {
+                            correctIdx = parsed - 1
+                        }
+                    }
+                } else if (item.has("correctAnswerIndex")) {
+                    correctIdx = item.optInt("correctAnswerIndex", correctIdx)
+                }
+
+                val expertComment = when {
+                    item.has("answer_tip") -> item.optString("answer_tip")
+                    item.has("expertComment") -> item.optString("expertComment")
+                    item.has("comment") -> item.optString("comment")
+                    else -> ""
+                }
+
+                val imageUrl = when {
+                    item.has("image") && !item.isNull("image") -> {
+                        val img = item.optString("image")
+                        if (img.isNotBlank() && img != "null") img else null
+                    }
+                    item.has("imageUrl") && !item.isNull("imageUrl") -> {
+                        val img = item.optString("imageUrl")
+                        if (img.isNotBlank() && img != "null") img else null
+                    }
+                    else -> null
+                }
+
+                val id = if (item.has("id")) item.optInt("id", fallbackId++) else fallbackId++
+
+                result.add(
+                    PddQuestion(
+                        id = id,
+                        ticketNumber = ticketNum,
+                        questionNumber = questionNum,
+                        category = category,
+                        topicTitle = topicTitle,
+                        questionText = questionText,
+                        options = options,
+                        correctAnswerIndex = correctIdx,
+                        expertComment = expertComment,
+                        diagramType = null,
+                        imageUrl = imageUrl
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return result
+    }
+
+    fun generateDefaultQuestions(category: String): List<PddQuestion> {
         val list = mutableListOf<PddQuestion>()
         var idCounter = if (category == "ABM") 1000 else 2000
 
@@ -237,6 +462,15 @@ object PddDataProvider {
             )
         )
 
+        val testImageUrls = listOf(
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Russian_road_sign_2.1.svg/640px-Russian_road_sign_2.1.svg.png", // Главная дорога
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Russian_road_sign_5.19.1.svg/640px-Russian_road_sign_5.19.1.svg.png", // Пешеходный переход
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Russian_road_sign_2.5.svg/640px-Russian_road_sign_2.5.svg.png", // STOP
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Russian_road_sign_3.20.svg/640px-Russian_road_sign_3.20.svg.png", // Обгон запрещен
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Russian_road_sign_4.3.svg/640px-Russian_road_sign_4.3.svg.png", // Круговое движение
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Russian_road_sign_3.24_60.svg/640px-Russian_road_sign_3.24_60.svg.png" // Ограничение 60
+        )
+
         // Populate 40 tickets (20 questions per ticket = 800 questions)
         for (ticket in 1..40) {
             for (qNum in 1..20) {
@@ -259,6 +493,16 @@ object PddDataProvider {
                     else -> null
                 }
 
+                // Attach real test image URLs for visual tickets
+                val questionImageUrl = when {
+                    ticket == 1 && qNum == 1 -> testImageUrls[0] // Главная дорога
+                    ticket == 1 && qNum == 2 -> testImageUrls[1] // Остановка за переходом
+                    ticket == 1 && qNum == 4 -> testImageUrls[2] // STOP знак
+                    ticket == 1 && qNum == 7 -> testImageUrls[4] // Круговое движение
+                    (qNum + ticket) % 3 == 0 -> testImageUrls[(ticket + qNum) % testImageUrls.size]
+                    else -> null
+                }
+
                 list.add(
                     PddQuestion(
                         id = idCounter++,
@@ -270,7 +514,8 @@ object PddDataProvider {
                         options = base.second,
                         correctAnswerIndex = base.third.first,
                         expertComment = base.third.second,
-                        diagramType = diagType
+                        diagramType = diagType,
+                        imageUrl = questionImageUrl
                     )
                 )
             }

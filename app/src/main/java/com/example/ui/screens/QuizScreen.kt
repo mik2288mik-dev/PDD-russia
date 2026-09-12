@@ -246,8 +246,11 @@ fun QuizScreen(
                         lineHeight = 24.sp
                     )
 
-                    // Optional Traffic Diagram View
-                    QuestionDiagramView(diagramType = currentQuestion.diagramType)
+                    // Traffic Diagram / Ticket Image View
+                    QuestionDiagramView(
+                        imageUrl = currentQuestion.imageUrl,
+                        diagramType = currentQuestion.diagramType
+                    )
 
                     // Options List with 12dp spacing
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

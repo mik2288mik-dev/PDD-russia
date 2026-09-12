@@ -6,6 +6,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import com.example.data.local.PddDataProvider
+import com.example.data.local.PddDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -33,6 +38,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val database = PddDatabase.getDatabase(applicationContext)
+        lifecycleScope.launch(Dispatchers.IO) {
+            PddDataProvider.populateDatabaseFromJson(applicationContext, database)
+        }
 
         setContent {
             PddAppTheme {

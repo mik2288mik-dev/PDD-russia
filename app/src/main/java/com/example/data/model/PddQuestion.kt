@@ -10,5 +10,6 @@ data class PddQuestion(
     val options: List<String>,  // Варианты ответов
     val correctAnswerIndex: Int,// Индекс правильного ответа (0-indexed)
     val expertComment: String,  // Подробный комментарий эксперта
-    val diagramType: String? = null // SVG/Vector diagram hint code or icon type
+    val diagramType: String? = null, // Diagram hint type
+    val imageUrl: String? = null // URL изображения ситуации/билета ПДД
 )
